@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>eBooks — A quiet library for deep reading</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                fontFamily: {
+                    'display': ['"Fraunces"', 'Georgia', 'serif'],
+                    'sans': ['"Inter"', 'system-ui', 'sans-serif'],
+                },
+                colors: {
+                    paper: '#f8f3ee',
+                    'paper-2': '#f1e9e0',
+                    ink: '#1f1c19',
+                    'ink-light': '#6b5f57',
+                    terracotta: '#cc5634',
+                    'terracotta-dark': '#a9442a',
+                    sage: '#6b7d6a',
+                    sand: '#e7ddd2',
+                    'sand-dark': '#d8cab8',
+                    cream: '#fffcf9',
+                }
+            }
+        }
+    }
+    if (window['pdfjsLib']) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+</script>
+<style type="text/tailwindcss">
+    body { background-color: #f8f3ee; color: #1f1c19; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    .display { font-family: 'Fraunces', Georgia, serif; }
+    .soft-shadow { box-shadow: 0 10px 40px rgba(46, 30, 20, 0.07); }
+    .soft-shadow-sm { box-shadow: 0 4px 24px rgba(46, 30, 20, 0.065); }
+    .book-cover-shadow { box-shadow: 0 14px 30px -8px rgba(55,38,26,.22), 0 2px 6px rgba(55,38,26,.08); }
+    .book-card:hover .book-cover-img { transform: translateY(-3px) rotate(-0.9deg); }
+    .book-cover-img { transition: transform .45s cubic-bezier(.22,1,.36,1); }
+    .focus-ring:focus { outline: none; box-shadow: 0 0 0 3px rgba(204,86,52,.22); border-color: #cc5634; }
+    .scroll-thin { scrollbar-width: thin; scrollbar-color: #d8cab8 transparent; }
+    .scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+    .scroll-thin::-webkit-scrollbar-thumb { background: #d8cab8; border-radius: 4px; }
+    .reader-canvas canvas { margin: 0 auto; box-shadow: 0 18px 60px rgba(40,28,18,.18); border-radius: 4px; }
+    @keyframes fadeUp { from { opacity:0; transform: translateY(10px);} to { opacity:1; transform: translateY(0);} }
+    .fade-up { animation: fadeUp .5s ease both; }
+    .truncate-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+</style>
+</head>
+<body class="min-h-screen bg-paper">
+    <!-- Top Brand Bar -->
+    <div class="w-full border-b border-sand bg-paper/95 backdrop-blur">
+        <div class="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-[13px] flex items-center justify-between text-[12.5px] text-ink-light">
+            <div class="flex items-center gap-8">
+                <span class="display text-[22px] tracking-tight text-ink">eBooks</span>
+                <span class="hidden sm:block">A quiet library for deep reading</span>
+            </div>
+            <div class="flex items-center gap-5 sm:gap-8 text-[12px]">
+                <span class="hidden md:inline">EST. 2018 • Portland & Remote</span>
+                <a href="#" class="hover:text-ink transition">Journal</a>
+                <a href="#" class="hover:text-ink transition">Gift a membership</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Navigation Bar -->
+    <header class="sticky top-0 z-40 bg-cream/90 backdrop-blur-xl border-b border-sand">
+        <div class="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12">
+            <div class="h-[68px] flex items-center gap-6 lg:gap-10">
+                
+
+                <!-- Mobile menu button -->
+                <button id="mobileMenuBtn" class="lg:hidden p-2 -ml-2 text-ink-light rounded-lg hover:bg-paper-2">
+                    <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
+                </button>
+
+                <!-- Search -->
+                <div class="flex-1 flex justify-center">
+                    <div class="relative w-full max-w-[520px]">
+                        <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-light/80" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                        <input id="searchInput" type="text" placeholder="Search titles, authors, notes…" class="w-full bg-paper border border-sand-dark/90 rounded-full pl-10 pr-4 h-[42px] text-[13.5px] placeholder-ink-light focus-ring transition" />
+                        <span class="hidden sm:block absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] text-ink-light/70 border border-sand-dark rounded-[6px] px-1.5 py-0.5 bg-cream">⌘K</span>
+                    </div>
+                </div>
+
+                <!-- Right actions -->
+                <div class="flex items-center gap-3 sm:gap-4">
+                    <button id="libraryBtn" class="hidden sm:flex items-center gap-1.5 text-[13px] font-medium text-ink-light hover:text-ink transition">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                        <span class="hidden xl:inline">My Shelf</span>
+                    </button>
+
+                    <!-- Signed out state -->
+                    <button id="signInTrigger" class="flex items-center gap-2.5 rounded-full pl-1.5 pr-3.5 py-1.5 border border-sand-dark bg-cream hover:bg-paper transition soft-shadow-sm">
+                        <span class="w-7 h-7 rounded-full bg-paper-2 flex items-center justify-center text-ink-light">
+                            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        </span>
+                        <span class="text-[13px] font-semibold text-ink">Sign in</span>
+                    </button>
+
+                    <!-- Signed in state -->
+                    <div id="userMenuWrap" class="relative hidden">
+                        <button id="userMenuBtn" class="flex items-center gap-2.5 rounded-full pl-1.5 pr-3 py-1.5 border border-sand-dark bg-cream hover:bg-paper transition">
+                            <span id="userAvatar" class="w-7 h-7 rounded-full bg-[#dfe8dd] text-sage flex items-center justify-center text-[11.5px] font-bold">E</span>
+                            <span id="userNameLabel" class="text-[13px] font-semibold text-ink hidden sm:inline">eden</span>
+                            <svg width="14" height="14" class="text-ink-light" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+                        </button>
+                        <div id="userDropdown" class="hidden absolute right-0 mt-2 w-56 bg-cream rounded-2xl border border-sand shadow-xl py-1.5 z-50">
+                            <div class="px-3.5 py-2.5 border-b border-sand">
+                                <div id="dropdownName" class="text-[13.5px] font-semibold text-ink">eden</div>
+                                <div id="dropdownEmail" class="text-[12px] text-ink-light">admin@ebooks.local</div>
+                            </div>
+                            <button id="goToAdminBtn" class="w-full text-left px-3.5 py-2 text-[13px] hover:bg-paper transition hidden items-center gap-2"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/></svg> Admin Console</button>
+                            <button class="w-full text-left px-3.5 py-2 text-[13px] hover:bg-paper transition">Reading stats</button>
+                            <button class="w-full text-left px-3.5 py-2 text-[13px] hover:bg-paper transition">Preferences</button>
+                            <div class="border-t border-sand mt-1 pt-1">
+                                <button id="signOutBtn" class="w-full text-left px-3.5 py-2 text-[13px] text-terracotta hover:bg-[#fdf1ec] transition">Sign out</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Mobile nav drawer -->
+            
+        </div>
+    </header>
+
+    <!-- MAIN APP VIEW -->
+    <main id="appView">
+        <div class="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 pt-10 lg:pt-16 pb-24">
+
+            <!-- Library Toolbar -->
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-6 border-t border-sand pt-6">
+                <div class="flex items-center gap-5">
+                    <h2 class="display text-[28px]">Library</h2>
+                    <span id="bookCountLabel" class="text-[12.5px] text-ink-light bg-paper-2 rounded-full px-2.5 py-1">12 books</span>
+                </div>
+                <div class="flex items-center gap-3 text-[13px]">
+                    <div class="hidden sm:flex items-center gap-2 text-ink-light">
+                        <span>Sort:</span>
+                        <select id="sortSelect" class="bg-transparent font-medium text-ink focus:outline-none">
+                            <option value="newest">Newest added</option>
+                            <option value="title">Title A–Z</option>
+                            <option value="pages_asc">Shortest first</option>
+                            <option value="pages_desc">Longest first</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center bg-cream border border-sand-dark rounded-full p-1 text-[12.5px]">
+                        <button data-view="grid" class="view-toggle px-2.5 py-1 rounded-full bg-ink text-cream">Grid</button>
+                        <button data-view="list" class="view-toggle px-2.5 py-1 rounded-full text-ink-light">List</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-12 gap-10 lg:gap-12">
+                <!-- Left Filters -->
+                <aside class="col-span-12 lg:col-span-3 xl:col-span-2">
+                    <div class="lg:sticky lg:top-[92px]">
+                        <div class="mb-8">
+                            <div class="text-[11px] uppercase tracking-wider text-ink-light mb-3 font-semibold">Categories</div>
+                            <div id="categoryFilters" class="space-y-2 text-[13.5px] text-ink-light">
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-ink"><input type="radio" name="cat" value="all" checked class="accent-terracotta"> <span>All books</span></label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-ink"><input type="radio" name="cat" value="Fiction"> <span>Fiction</span></label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-ink"><input type="radio" name="cat" value="Essays"> <span>Essays</span></label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-ink"><input type="radio" name="cat" value="Poetry"> <span>Poetry</span></label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-ink"><input type="radio" name="cat" value="Nonfiction"> <span>Nonfiction</span></label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-ink"><input type="radio" name="cat" value="Classics"> <span>Classics</span></label>
+                                <label class="flex items-center gap-2 cursor-pointer hover:text-ink"><input type="radio" name="cat" value="Art"> <span>Art & Design</span></label>
+                            </div>
+                        </div>
+                        <div class="mb-8">
+                            <div class="text-[11px] uppercase tracking-wider text-ink-light mb-3 font-semibold">Length</div>
+                            <div class="space-y-2 text-[13.5px] text-ink-light" id="lengthFilters">
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" data-len="short" class="accent-terracotta rounded"> Under 200 pgs</label>
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" data-len="medium" class="accent-terracotta rounded"> 200–350 pgs</label>
+                                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" data-len="long" class="accent-terracotta rounded"> 350+ pgs</label>
+                            </div>
+                        </div>
+                        <div class="rounded-[20px] bg-[#f1e6d9] border border-sand-dark px-4 py-4 text-[13px] text-[#5a4134]">
+                            <div class="font-semibold text-ink mb-1">Reading streak</div>
+                            <div>You're on a <b>6 day</b> streak. Keep going!</div>
+                            <div class="mt-2 h-1.5 rounded-full bg-[#dec8b5] overflow-hidden"><div class="h-full bg-terracotta w-[72%] rounded-full"></div></div>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- Book Grid -->
+                <section class="col-span-12 lg:col-span-9 xl:col-span-7">
+                    <div id="bookGrid" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-3 gap-x-6 sm:gap-x-8 gap-y-10">
+                        <!-- Book cards injected by JS -->
+                    </div>
+                    <div id="emptyState" class="hidden text-center py-20 text-ink-light">
+                        <div class="display text-[28px] text-ink mb-2">No books match</div>
+                        <p>Try a different search or add a book in the Admin Console.</p>
+                    </div>
+                </section>
+
+                <!-- Right rail -->
+                <aside class="hidden xl:block xl:col-span-3">
+                    <div class="sticky top-[92px] space-y-6">
+                        <div class="bg-cream rounded-[22px] border border-sand p-5 soft-shadow-sm">
+                            <div class="text-[11px] uppercase tracking-wider text-ink-light font-semibold mb-3">Currently reading</div>
+                            <div id="currentlyReadingWidget">
+                                <div class="text-[13px] text-ink-light italic">Sign in to see your progress</div>
+                            </div>
+                        </div>
+
+                        <div class="bg-cream rounded-[22px] border border-sand p-5 soft-shadow-sm">
+                            <div class="text-[11px] uppercase tracking-wider text-ink-light font-semibold mb-3">This month</div>
+                            <div class="grid grid-cols-3 text-center gap-3 text-[12px] text-ink-light">
+                                <div><div class="display text-[26px] text-ink">14</div>Hours</div>
+                                <div><div class="display text-[26px] text-ink">2</div>Finished</div>
+                                <div><div class="display text-[26px] text-ink">18</div>Notes</div>
+                            </div>
+                        </div>
+
+                        <div class="bg-cream rounded-[22px] border border-sand p-5 soft-shadow-sm">
+                            <div class="text-[11px] uppercase tracking-wider text-ink-light font-semibold mb-3">Admin note</div>
+                            <p class="text-[13px] leading-relaxed text-ink-light">Upload new editions from the Admin Console. Books are stored in Django SQLite on the server.</p>
+                            <div class="mt-3 text-[12px] bg-paper rounded-lg px-3 py-2 font-mono text-ink-light">eden / eden123</div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="border-t border-sand bg-paper-2/60">
+            <div class="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-12 text-[13px] text-ink-light grid md:grid-cols-4 gap-8">
+                <div>
+                    <div class="display text-[22px] text-ink mb-2">eBooks</div>
+                    <p>Slow, beautiful reading on the web.</p>
+                </div>
+                <div class="space-y-2"><div class="font-semibold text-ink mb-2">Library</div><a href="#" class="block hover:text-ink">Browse all</a><a href="#" class="block hover:text-ink">New arrivals</a><a href="#" class="block hover:text-ink">Staff picks</a></div>
+                <div class="space-y-2"><div class="font-semibold text-ink mb-2">Community</div><a href="#" class="block hover:text-ink">Reading groups</a><a href="#" class="block hover:text-ink">Notes</a><a href="#" class="block hover:text-ink">Journal</a></div>
+                <div class="text-[12.5px]">© 2026 eBooks Library • Demo build • SQLite in-browser • No real user data leaves your device.</div>
+            </div>
+        </footer>
+    </main>
+
+    <!-- ADMIN VIEW -->
+    <section id="adminView" class="hidden min-h-screen bg-paper">
+        <div class="border-b border-sand bg-cream">
+            <div class="max-w-6xl mx-auto px-5 sm:px-8 lg:px-12 h-[68px] flex items-center justify-between">
+                <div class="flex items-center gap-6">
+                    <span class="display text-[22px]">eBooks</span>
+                    <span class="text-[12px] text-ink-light bg-[#f3e8df] px-2.5 py-1 rounded-full font-semibold">Admin Console</span>
+                </div>
+                <div class="flex items-center gap-3 text-[13px]">
+                    <span class="text-ink-light hidden sm:inline">Signed in as <b class="text-ink">eden</b></span>
+                    <button id="backToLibraryBtn" class="px-3.5 py-2 rounded-full border border-sand-dark bg-white hover:bg-paper">Back to library</button>
+                    <button id="adminSignOutBtn" class="px-3.5 py-2 rounded-full bg-ink text-cream">Sign out</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="max-w-6xl mx-auto px-5 sm:px-8 lg:px-12 py-12 lg:py-16 grid lg:grid-cols-12 gap-10 lg:gap-14">
+            <!-- Upload form -->
+            <div class="lg:col-span-5">
+                <h1 class="display text-[38px] mb-2">Add a book</h1>
+                <p class="text-[14.5px] text-ink-light mb-8">Upload a PDF and its metadata. It will be saved into your local SQLite database (sql.js) and appear in the library immediately.</p>
+                <form id="bookUploadForm" class="bg-cream rounded-[24px] border border-sand p-6 sm:p-7 soft-shadow-sm space-y-5">
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[11.5px] font-semibold text-ink-light uppercase tracking-wider">Book title *</label>
+                            <input name="title" required class="mt-1.5 w-full bg-paper border border-sand-dark rounded-xl px-3.5 py-2.5 text-[14px] focus-ring" placeholder="e.g. The Orchard at Night" />
+                        </div>
+                        <div>
+                            <label class="text-[11.5px] font-semibold text-ink-light uppercase tracking-wider">Author *</label>
+                            <input name="author" required class="mt-1.5 w-full bg-paper border border-sand-dark rounded-xl px-3.5 py-2.5 text-[14px] focus-ring" placeholder="Marin Ellery" />
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label class="text-[11.5px] font-semibold text-ink-light uppercase tracking-wider">Pages *</label>
+                            <input name="pages" type="number" min="1" required class="mt-1.5 w-full bg-paper border border-sand-dark rounded-xl px-3.5 py-2.5 text-[14px] focus-ring" placeholder="312" />
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-[11.5px] font-semibold text-ink-light uppercase tracking-wider">Category</label>
+                            <select name="category" class="mt-1.5 w-full bg-paper border border-sand-dark rounded-xl px-3.5 py-[11px] text-[14px] focus-ring">
+                                <option>Fiction</option><option>Essays</option><option>Poetry</option><option>Nonfiction</option><option>Classics</option><option>Art</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[11.5px] font-semibold text-ink-light uppercase tracking-wider">Cover image</label>
+                        <!-- Tab toggle -->
+                        <div class="flex mt-1.5 mb-2 bg-paper border border-sand-dark rounded-xl overflow-hidden text-[12.5px] font-semibold">
+                            <button type="button" id="coverTabFile" class="flex-1 py-1.5 bg-ink text-cream transition">Upload file</button>
+                            <button type="button" id="coverTabUrl"  class="flex-1 py-1.5 text-ink-light transition">Paste URL</button>
+                        </div>
+                        <!-- File upload panel -->
+                        <div id="coverFilePanel">
+                            <input id="coverImageInput" name="cover_image" type="file" accept="image/*"
+                                class="w-full bg-paper border border-sand-dark rounded-xl px-3.5 py-2.5 text-[14px] focus-ring file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-paper-2 file:text-[12.5px]"/>
+                            <div id="coverPreviewWrap" class="hidden mt-2">
+                                <img id="coverPreview" class="h-28 rounded-lg object-cover book-cover-shadow" alt="Cover preview" />
+                            </div>
+                        </div>
+                        <!-- URL panel -->
+                        <div id="coverUrlPanel" class="hidden">
+                            <input name="cover_url" id="coverUrlInput" class="w-full bg-paper border border-sand-dark rounded-xl px-3.5 py-2.5 text-[14px] focus-ring" placeholder="https://images.unsplash.com/…" />
+                            <p class="text-[12px] text-ink-light mt-1.5">Tip: Unsplash or Picsum URLs work great.</p>
+                            <div class="mt-2">
+                                <img id="coverUrlPreview" class="hidden h-28 rounded-lg object-cover book-cover-shadow" alt="Cover preview" />
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[11.5px] font-semibold text-ink-light uppercase tracking-wider">PDF file *</label>
+                        <input id="pdfFileInput" name="pdf" type="file" accept="application/pdf" class="mt-1.5 w-full bg-paper border border-sand-dark rounded-xl px-3.5 py-2.5 text-[14px] focus-ring file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-paper-2 file:text-[12.5px]"/>
+                        <p class="text-[12px] text-ink-light mt-1.5">Optional. Stored in <code>media/pdfs/</code> on the server.</p>
+                    </div>
+                    <div>
+                        <label class="text-[11.5px] font-semibold text-ink-light uppercase tracking-wider">Description</label>
+                        <textarea name="description" rows="3" class="mt-1.5 w-full bg-paper border border-sand-dark rounded-xl px-3.5 py-2.5 text-[14px] focus-ring" placeholder="A short blurb…"></textarea>
+                    </div>
+                    <div class="flex items-center gap-3 pt-2">
+                        <button class="px-5 py-3 rounded-full bg-terracotta hover:bg-terracotta-dark text-white text-[13.5px] font-semibold transition" type="submit">Save book</button>
+                        <button type="reset" class="text-[13px] text-ink-light hover:text-ink">Reset</button>
+                        <span id="uploadStatus" class="text-[12.5px] text-sage ml-auto"></span>
+                    </div>
+                </form>
+
+                <div class="mt-6 bg-[#f5ece2] border border-sand-dark rounded-[18px] px-4 py-4 text-[12.5px] text-[#665042] leading-relaxed">
+                    <b>How persistence works:</b> Books are saved to a server-side <b>SQLite</b> database via Django. PDFs and cover images are stored in <code>media/</code> on the server. Data survives server restarts and is shared across all browsers.
+                </div>
+            </div>
+
+            <!-- Books table -->
+            <div class="lg:col-span-7">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="display text-[26px]">Library database</h2>
+                    <div class="text-[12.5px] text-ink-light"><span id="adminBookCount">0</span> records • table: <code>books</code></div>
+                </div>
+                <div class="bg-cream rounded-[22px] border border-sand soft-shadow-sm overflow-hidden">
+                    <div class="overflow-auto max-h-[680px] scroll-thin">
+                        <table class="w-full text-[13px]">
+                            <thead class="sticky top-0 bg-cream border-b border-sand text-[11px] uppercase tracking-wider text-ink-light">
+                                <tr>
+                                    <th class="text-left px-4 py-3 font-semibold">Title</th>
+                                    <th class="text-left px-4 py-3 font-semibold">Author</th>
+                                    <th class="text-left px-4 py-3 font-semibold">Pages</th>
+                                    <th class="text-left px-4 py-3 font-semibold">Cat</th>
+                                    <th class="text-left px-4 py-3 font-semibold">PDF</th>
+                                    <th class="px-4 py-3"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminBookTbody" class="divide-y divide-sand/90">
+                                <!-- rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-3 mt-4 text-[12.5px]">
+                    <button id="seedDemoBtn" class="px-3.5 py-2 rounded-full border border-sand-dark bg-white hover:bg-paper">Re-seed demo books</button>
+                    <button id="exportDbBtn" class="px-3.5 py-2 rounded-full border border-sand-dark bg-white hover:bg-paper">Export SQLite DB</button>
+                    <button id="clearDbBtn" class="px-3.5 py-2 rounded-full border border-red-200 text-red-700 bg-red-50 hover:bg-red-100">Wipe database</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AUTH MODAL -->
+    <div id="authModal" class="fixed inset-0 z-[70] hidden" aria-hidden="true">
+        <div id="authBackdrop" class="absolute inset-0 bg-[#231810]/45 backdrop-blur-[2px]"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="w-full max-w-[420px] bg-cream rounded-[26px] soft-shadow border border-sand overflow-hidden fade-up">
+                <div class="px-6 sm:px-7 pt-6 pb-4 flex items-center justify-between">
+                    <div class="display text-[24px]">Welcome to eBooks</div>
+                    <button id="closeAuthBtn" class="p-1.5 rounded-full hover:bg-paper text-ink-light"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+                </div>
+                <div class="px-1.5 mx-6 bg-paper rounded-full border border-sand-dark flex text-[13px] font-semibold">
+                    <button id="tabSignIn" class="flex-1 py-2 rounded-full transition bg-ink text-cream">Sign in</button>
+                    <button id="tabRegister" class="flex-1 py-2 rounded-full transition text-ink-light">Create account</button>
+                </div>
+
+                <!-- Sign in form -->
+                <form id="signInForm" class="px-6 sm:px-7 py-6 space-y-4">
+                    <div>
+                        <label class="text-[11.5px] uppercase tracking-wider font-semibold text-ink-light">Username</label>
+                        <input name="username" autocomplete="username" class="mt-1.5 w-full bg-paper border border-sand-dark rounded-xl px-3.5 py-2.5 text-[14px] focus-ring" placeholder="eden" required>
+                    </div>
+                    <div>
+                        <label class="text-[11.5px] uppercase tracking-wider font-semibold text-ink-light">Password</label>
+                        <input name="password" type="password" autocomplete="current-password" class="mt-1.5 w-full bg-paper border border-sand-dark rounded-xl px-3.5 py-2.5 text-[14px] focus-ring" placeholder="••••••••" required>
+                    </div>
+                    <button class="w-full py-3 rounded-full bg-ink text-cream font-semibold text-[14px] hover:bg-[#2b2623] transition">Continue</button>
+                    <div class="text-[12.5px] text-ink-light">Admin demo: <b class="text-ink">eden / eden123</b></div>
+                    <p id="signInError" class="text-[13px] text-red-600 hidden"></p>
+                </form>
+
+                <!-- Register form -->
+                <form id="registerForm" class="px-6 sm:px-7 py-6 space-y-4 hidden">
+                    <div>
+                        <label class="text-[11.5px] uppercase tracking-wider font-semibold text-ink-light">Username</label>
+                        <input name="username" autocomplete="username" class="mt-1.5 w-full bg-paper border border-sand-dark rounded-xl px-3.5 py-2.5 text-[14px] focus-ring" placeholder="yourname" required>
+                    </div>
+                    <div>
+                        <label class="text-[11.5px] uppercase tracking-wider font-semibold text-ink-light">Email</label>
+                        <input name="email" type="email" autocomplete="email" class="mt-1.5 w-full bg-paper border border-sand-dark rounded-xl px-3.5 py-2.5 text-[14px] focus-ring" placeholder="you@example.com" required>
+                    </div>
+                    <div>
+                        <label class="text-[11.5px] uppercase tracking-wider font-semibold text-ink-light">Password</label>
+                        <input name="password" type="password" autocomplete="new-password" class="mt-1.5 w-full bg-paper border border-sand-dark rounded-xl px-3.5 py-2.5 text-[14px] focus-ring" placeholder="At least 6 characters" required minlength="6">
+                    </div>
+                    <button class="w-full py-3 rounded-full bg-terracotta text-white font-semibold text-[14px] hover:bg-terracotta-dark transition">Create account</button>
+                    <p id="registerError" class="text-[13px] text-red-600 hidden"></p>
+                    <p class="text-[11.5px] text-ink-light">By creating an account you agree to our calm, ad-free reading terms.</p>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- READER MODAL -->
+    <div id="readerModal" class="fixed inset-0 z-[60] hidden">
+        <div class="absolute inset-0 bg-paper">
+            <!-- Reader top bar -->
+            <div class="h-[60px] border-b border-sand bg-cream/95 backdrop-blur flex items-center px-4 sm:px-6 gap-4">
+                <button id="closeReaderBtn" class="px-3 py-1.5 rounded-full border border-sand-dark text-[13px] hover:bg-paper">← Library</button>
+                <div class="min-w-0 flex-1">
+                    <div id="readerTitle" class="font-semibold text-[14px] truncate">Book title</div>
+                    <div id="readerMeta" class="text-[12px] text-ink-light truncate">Author • 000 pages</div>
+                </div>
+                <div class="hidden md:flex items-center gap-2 text-[12.5px] text-ink-light">
+                    <button id="pdfPrev" class="px-2.5 py-1.5 rounded-lg border border-sand-dark bg-white hover:bg-paper">Prev</button>
+                    <span><span id="pdfPageNum">1</span> / <span id="pdfPageCount">–</span></span>
+                    <button id="pdfNext" class="px-2.5 py-1.5 rounded-lg border border-sand-dark bg-white hover:bg-paper">Next</button>
+                    <span class="w-px h-5 bg-sand mx-1"></span>
+                    <button id="pdfZoomOut" class="px-2 py-1.5 rounded-lg border border-sand-dark bg-white hover:bg-paper">−</button>
+                    <button id="pdfZoomIn" class="px-2 py-1.5 rounded-lg border border-sand-dark bg-white hover:bg-paper">+</button>
+                </div>
+                <button id="readerMoreBtn" class="p-2 rounded-lg hover:bg-paper text-ink-light">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                </button>
+            </div>
+
+            <!-- Reader body -->
+            <div class="h-[calc(100vh-60px)] overflow-auto bg-[#efe7dc] scroll-thin" id="readerScroll">
+                <div class="max-w-4xl mx-auto px-5 sm:px-10 py-10">
+                    <!-- No PDF fallback -->
+                    <div id="readerNoPdf" class="hidden bg-cream rounded-[22px] border border-sand p-8 soft-shadow-sm text-center">
+                        <div class="display text-[28px] mb-2">No PDF attached</div>
+                        <p class="text-ink-light max-w-md mx-auto">This catalog entry was seeded without a PDF. Upload a real PDF via Admin Console → Add a book to read it here with the built-in PDF.js viewer.</p>
+                    </div>
+                    <!-- PDF canvas -->
+                    <div id="readerCanvasWrap" class="reader-canvas flex justify-center"></div>
+                </div>
+
+                <!-- mobile pdf controls -->
+                <div class="md:hidden fixed bottom-5 left-1/2 -translate-x-1/2 bg-cream border border-sand rounded-full shadow-xl px-3 py-2 flex items-center gap-3 text-[13px]">
+                    <button id="pdfPrev_m" class="px-2">‹</button>
+                    <span class="text-ink-light"><span id="pdfPageNum_m">1</span> / <span id="pdfPageCount_m">–</span></span>
+                    <button id="pdfNext_m" class="px-2">›</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-ink text-cream text-[13px] px-4 py-3 rounded-xl shadow-xl hidden z-[90]">Saved.</div>
+
+<script>
+/* =====================================================================
+   eBooks — Django REST API client
+   ===================================================================== */
+const $ = (sel, root=document) => root.querySelector(sel);
+const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
+
+const API = '/api';
+let TOKEN = localStorage.getItem('ebooks_token') || '';
+
+function apiHeaders(extra={}) {
+    const h = { 'Content-Type': 'application/json', ...extra };
+    if (TOKEN) h['Authorization'] = 'Token ' + TOKEN;
+    return h;
+}
+async function apiFetch(path, opts={}) {
+    const res = await fetch(API + path, { headers: apiHeaders(), ...opts });
+    if (res.status === 204) return null;
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw Object.assign(new Error(data.detail || JSON.stringify(data)), { status: res.status });
+    return data;
+}
+
+function showToast(msg) {
+    const t = $('#toast');
+    t.textContent = msg;
+    t.classList.remove('hidden');
+    clearTimeout(showToast._tid);
+    showToast._tid = setTimeout(() => t.classList.add('hidden'), 2100);
+}
+
+/* =====================================================================
+   Auth
+   ===================================================================== */
+let currentUser = null;
+
+function updateAuthUI() {
+    const signInTrigger = $('#signInTrigger');
+    const userMenuWrap  = $('#userMenuWrap');
+    if (currentUser) {
+        signInTrigger.classList.add('hidden');
+        userMenuWrap.classList.remove('hidden');
+        $('#userNameLabel').textContent = currentUser.username;
+        $('#userAvatar').textContent    = currentUser.username.slice(0,1).toUpperCase();
+        $('#dropdownName').textContent  = currentUser.username;
+        $('#dropdownEmail').textContent = currentUser.email || '';
+        const adminBtn = $('#goToAdminBtn');
+        if (currentUser.is_admin) { adminBtn.classList.remove('hidden'); adminBtn.classList.add('flex'); }
+        else { adminBtn.classList.add('hidden'); }
+        loadCurrentlyReading();
+    } else {
+        signInTrigger.classList.remove('hidden');
+        userMenuWrap.classList.add('hidden');
+        const w = $('#currentlyReadingWidget');
+        if (w) w.innerHTML = '<div class="text-[13px] text-ink-light italic">Sign in to see your progress</div>';
+    }
+}
+
+async function fetchCurrentUser() {
+    if (!TOKEN) return;
+    try { currentUser = await apiFetch('/auth/me/'); updateAuthUI(); }
+    catch { TOKEN = ''; localStorage.removeItem('ebooks_token'); }
+}
+
+/* =====================================================================
+   Currently Reading widget
+   ===================================================================== */
+async function loadCurrentlyReading() {
+    const w = $('#currentlyReadingWidget');
+    if (!w || !currentUser) return;
+    w.innerHTML = '<div class="text-[13px] text-ink-light italic animate-pulse">Loading…</div>';
+    try {
+        const data  = await apiFetch('/progress/');
+        const items = (data.results || data).slice(0, 3); // show up to 3
+        if (!items.length) {
+            w.innerHTML = `
+                <div class="text-[13px] text-ink-light">
+                    No books in progress yet.<br>
+                    <span class="text-terracotta cursor-pointer hover:underline" id="startReadingLink">Browse the library →</span>
+                </div>`;
+            $('#startReadingLink')?.addEventListener('click', () =>
+                document.getElementById('bookGrid').scrollIntoView({ behavior: 'smooth' }));
+            return;
+        }
+        w.innerHTML = '';
+        items.forEach((entry, i) => {
+            const pct = entry.book_pages ? Math.round((entry.page / entry.book_pages) * 100) : 0;
+            const coverSrc = entry.book_cover || ('https://picsum.photos/seed/' + entry.book + '/120/160');
+            const div = document.createElement('div');
+            if (i > 0) div.className = 'mt-4 pt-4 border-t border-sand';
+            div.innerHTML = `
+                <div class="flex gap-3 cursor-pointer hover:opacity-80 transition" data-open-progress="${entry.book}">
+                    <img src="${coverSrc}" class="w-12 h-[68px] object-cover rounded-[8px] book-cover-shadow flex-shrink-0" alt="">
+                    <div class="min-w-0 flex-1">
+                        <div class="font-semibold text-[13.5px] leading-snug line-clamp-2">${entry.book_title}</div>
+                        <div class="text-[12px] text-ink-light mt-0.5">${entry.book_author || ''}</div>
+                        <div class="text-[11.5px] text-ink-light mt-1">p. ${entry.page}${entry.book_pages ? ' / ' + entry.book_pages : ''}</div>
+                        <div class="mt-1.5 h-1.5 bg-paper-2 rounded-full overflow-hidden">
+                            <div class="h-full bg-sage transition-all" style="width:${pct}%"></div>
+                        </div>
+                        <div class="text-[10.5px] text-ink-light mt-0.5">${pct}% complete</div>
+                    </div>
+                </div>`;
+            div.querySelector('[data-open-progress]').addEventListener('click', () => openReader(entry.book));
+            w.appendChild(div);
+        });
+    } catch (e) {
+        console.error('Progress load failed', e);
+        w.innerHTML = '<div class="text-[13px] text-ink-light italic">Could not load progress</div>';
+    }
+}
+
+/* =====================================================================
+   Book rendering — Grid & List view
+   ===================================================================== */
+let currentFilter = { q: '', category: 'all', lengths: new Set(), sort: 'newest' };
+let currentView   = 'grid';
+let allBooks      = [];
+
+function buildGridCard(b) {
+    const prog = Math.floor(18 + (b.id * 37) % 71);
+    const card = document.createElement('div');
+    card.className = 'book-card cursor-pointer group';
+    card.innerHTML = `
+        <div class="relative">
+            <div class="aspect-[3/4.35] rounded-[16px] overflow-hidden bg-[#e8ddd0] book-cover-shadow book-cover-img">
+                <img src="${b.cover || 'https://picsum.photos/seed/' + b.id + '/400/560'}"
+                     alt="${b.title.replace(/"/g,'&quot;')}" class="w-full h-full object-cover" loading="lazy" />
+            </div>
+            <div class="absolute top-3 left-3 text-[10.5px] uppercase tracking-wider bg-cream/90 backdrop-blur px-2 py-1 rounded-full border border-sand text-ink-light">${b.category || 'Fiction'}</div>
+            ${b.has_pdf ? '<div class="absolute top-3 right-3 text-[10.5px] bg-[#1f1c19]/78 text-cream px-2 py-1 rounded-full">PDF</div>' : ''}
+        </div>
+        <div class="pt-3.5">
+            <div class="font-semibold text-[15.5px] leading-snug truncate-2 group-hover:text-terracotta transition">${b.title}</div>
+            <div class="text-[13px] text-ink-light mt-0.5">${b.author}</div>
+            <div class="flex items-center gap-2 mt-2 text-[11.5px] text-ink-light">
+                <span>${b.pages || '—'} pgs</span><span>•</span><span>${prog}%</span>
+            </div>
+            <div class="mt-2 bg-paper-2 rounded-full overflow-hidden h-[4px]">
+                <div class="h-full bg-[#cab8a5]" style="width:${prog}%"></div>
+            </div>
+        </div>`;
+    card.addEventListener('click', () => openReader(b.id));
+    return card;
+}
+
+function buildListRow(b) {
+    const row = document.createElement('div');
+    row.className = 'book-card cursor-pointer group flex items-center gap-4 py-4 hover:bg-paper-2/60 rounded-xl px-3 -mx-3 transition';
+    row.innerHTML = `
+        <div class="w-11 h-[60px] rounded-[8px] overflow-hidden bg-[#e8ddd0] book-cover-shadow flex-shrink-0">
+            <img src="${b.cover || 'https://picsum.photos/seed/' + b.id + '/120/160'}"
+                 alt="" class="w-full h-full object-cover" loading="lazy" />
+        </div>
+        <div class="flex-1 min-w-0">
+            <div class="font-semibold text-[14.5px] truncate group-hover:text-terracotta transition">${b.title}</div>
+            <div class="text-[12.5px] text-ink-light">${b.author}</div>
+        </div>
+        <div class="hidden sm:flex items-center gap-3 text-[12.5px] text-ink-light flex-shrink-0">
+            <span class="w-20 text-right">${b.pages || '—'} pgs</span>
+            <span class="w-24 text-center px-2 py-0.5 rounded-full bg-paper-2 text-[11px] uppercase tracking-wide">${b.category || ''}</span>
+            ${b.has_pdf ? '<span class="text-[11px] px-2 py-0.5 rounded-full bg-ink/10 font-semibold">PDF</span>' : '<span class="w-8"></span>'}
+        </div>`;
+    row.addEventListener('click', () => openReader(b.id));
+    return row;
+}
+
+function applyViewToggleUI() {
+    $$('.view-toggle').forEach(btn => {
+        const isActive = btn.dataset.view === currentView;
+        btn.className = isActive
+            ? 'view-toggle px-2.5 py-1 rounded-full bg-ink text-cream text-[12.5px] font-medium transition'
+            : 'view-toggle px-2.5 py-1 rounded-full text-ink-light text-[12.5px] font-medium transition hover:text-ink';
+    });
+    const grid = $('#bookGrid');
+    if (currentView === 'grid') {
+        grid.className = 'grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-3 gap-x-6 sm:gap-x-8 gap-y-10';
+    } else {
+        grid.className = 'flex flex-col divide-y divide-sand/60';
+    }
+}
+
+async function renderBooks() {
+    const params = new URLSearchParams();
+    if (currentFilter.q)                  params.set('q', currentFilter.q);
+    if (currentFilter.category !== 'all') params.set('category', currentFilter.category);
+    params.set('sort', currentFilter.sort);
+
+    try {
+        const data = await apiFetch('/books/?' + params.toString());
+        allBooks = data.results || data;
+    } catch (e) { console.error('Failed to load books', e); allBooks = []; }
+
+    let list = [...allBooks];
+    if (currentFilter.lengths.size) {
+        list = list.filter(b => {
+            const p = b.pages || 0;
+            return (currentFilter.lengths.has('short')  && p < 200) ||
+                   (currentFilter.lengths.has('medium') && p >= 200 && p <= 350) ||
+                   (currentFilter.lengths.has('long')   && p > 350);
+        });
+    }
+
+    const grid = $('#bookGrid');
+    grid.innerHTML = '';
+    $('#bookCountLabel').textContent = `${list.length} book${list.length !== 1 ? 's' : ''}`;
+    $('#emptyState').classList.toggle('hidden', list.length > 0);
+    applyViewToggleUI();
+
+    list.forEach(b => {
+        grid.appendChild(currentView === 'grid' ? buildGridCard(b) : buildListRow(b));
+    });
+}
+
+/* =====================================================================
+   Reader (PDF.js)
+   ===================================================================== */
+let pdfDoc = null, pdfPageNum = 1, pdfScale = 1.25;
+
+async function openReader(bookId) {
+    _progressBookId = bookId;
+    try {
+        const book = await apiFetch('/books/' + bookId + '/');
+        $('#readerTitle').textContent = book.title;
+        $('#readerMeta').textContent  = `${book.author} • ${book.pages || '?'} pages`;
+        $('#readerModal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+
+        const noPdf      = $('#readerNoPdf');
+        const canvasWrap = $('#readerCanvasWrap');
+        canvasWrap.innerHTML = '';
+        pdfDoc = null;
+
+        // Restore saved page
+        let startPage = 1;
+        if (currentUser) {
+            try {
+                const prog  = await apiFetch('/progress/');
+                const items = prog.results || prog;
+                const entry = items.find(p => p.book === bookId);
+                if (entry) startPage = entry.page;
+            } catch {}
+        }
+
+        if (book.has_pdf && book.pdf_url) {
+            noPdf.classList.add('hidden');
+            try {
+                const headers = TOKEN ? { Authorization: 'Token ' + TOKEN } : {};
+                pdfDoc = await pdfjsLib.getDocument({ url: book.pdf_url, httpHeaders: headers }).promise;
+                pdfPageNum = Math.min(startPage, pdfDoc.numPages);
+                $('#pdfPageCount').textContent   = pdfDoc.numPages;
+                $('#pdfPageCount_m').textContent = pdfDoc.numPages;
+                await renderPdfPage(pdfPageNum);
+                if (currentUser) saveProgress(bookId, pdfPageNum);
+            } catch (e) {
+                noPdf.classList.remove('hidden');
+                noPdf.querySelector('p').textContent = 'Failed to load PDF: ' + e.message;
+            }
+        } else {
+            noPdf.classList.remove('hidden');
+        }
+    } catch (e) { showToast('Could not open book'); console.error(e); }
+}
+
+async function renderPdfPage(num) {
+    if (!pdfDoc) return;
+    const page     = await pdfDoc.getPage(num);
+    const viewport = page.getViewport({ scale: pdfScale });
+    const canvas   = document.createElement('canvas');
+    canvas.width   = viewport.width;
+    canvas.height  = viewport.height;
+    canvas.style.maxWidth = '100%';
+    canvas.style.height   = 'auto';
+    const wrap = $('#readerCanvasWrap');
+    wrap.innerHTML = '';
+    wrap.appendChild(canvas);
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    $('#pdfPageNum').textContent   = num;
+    $('#pdfPageNum_m').textContent = num;
+}
+
+function pdfNav(dir) {
+    if (!pdfDoc) return;
+    const n = pdfPageNum + dir;
+    if (n >= 1 && n <= pdfDoc.numPages) {
+        pdfPageNum = n;
+        renderPdfPage(pdfPageNum);
+        if (currentUser && _progressBookId) saveProgress(_progressBookId, n);
+    }
+}
+function pdfZoom(d) {
+    pdfScale = Math.min(2.6, Math.max(0.6, pdfScale + d));
+    if (pdfDoc) renderPdfPage(pdfPageNum);
+}
+
+let _progressBookId = null;
+async function saveProgress(bookId, page) {
+    if (!currentUser) return;
+    _progressBookId = bookId;
+    try {
+        await apiFetch('/progress/', { method: 'POST', body: JSON.stringify({ book: bookId, page }) });
+        loadCurrentlyReading();
+    } catch {}
+}
+
+/* =====================================================================
+   Admin
+   ===================================================================== */
+async function renderAdminTable() {
+    if (!currentUser?.is_admin) return;
+    try {
+        const data  = await apiFetch('/books/?sort=newest');
+        const books = data.results || data;
+        const tbody = $('#adminBookTbody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        $('#adminBookCount').textContent = books.length;
+        books.forEach(b => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-paper/70';
+            tr.innerHTML = `
+                <td class="px-4 py-3 font-medium">${b.title}</td>
+                <td class="px-4 py-3 text-ink-light">${b.author}</td>
+                <td class="px-4 py-3">${b.pages || '—'}</td>
+                <td class="px-4 py-3 text-ink-light text-[12px]">${b.category || ''}</td>
+                <td class="px-4 py-3">${b.has_pdf
+                    ? '<span class="text-[11px] px-2 py-1 rounded-full bg-[#e6efe6] text-sage font-semibold">YES</span>'
+                    : '<span class="text-ink-light">—</span>'}</td>
+                <td class="px-4 py-3 text-right">
+                    <button data-del="${b.id}" class="text-[12px] text-red-600 hover:underline">Delete</button>
+                    <button data-open="${b.id}" class="ml-3 text-[12px] text-ink-light hover:text-ink">Open</button>
+                </td>`;
+            tbody.appendChild(tr);
+        });
+        tbody.querySelectorAll('[data-del]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (!confirm('Delete this book?')) return;
+                try {
+                    await apiFetch('/books/' + btn.dataset.del + '/', { method: 'DELETE' });
+                    showToast('Book deleted');
+                    renderAdminTable(); renderBooks();
+                } catch (e) { showToast('Delete failed: ' + e.message); }
+            });
+        });
+        tbody.querySelectorAll('[data-open]').forEach(btn => {
+            btn.addEventListener('click', () => { showAdmin(false); setTimeout(() => openReader(parseInt(btn.dataset.open)), 60); });
+        });
+    } catch (e) { console.error('Admin table error', e); }
+}
+
+/* =====================================================================
+   Cover image tab toggle
+   ===================================================================== */
+function initCoverTabs() {
+    const tabFile   = $('#coverTabFile');
+    const tabUrl    = $('#coverTabUrl');
+    const filePanel = $('#coverFilePanel');
+    const urlPanel  = $('#coverUrlPanel');
+    if (!tabFile) return;
+
+    function setTab(which) {
+        const isFile = which === 'file';
+        tabFile.className = isFile
+            ? 'flex-1 py-1.5 bg-ink text-cream transition text-[12.5px] font-semibold'
+            : 'flex-1 py-1.5 text-ink-light transition text-[12.5px] font-semibold hover:text-ink';
+        tabUrl.className = !isFile
+            ? 'flex-1 py-1.5 bg-ink text-cream transition text-[12.5px] font-semibold'
+            : 'flex-1 py-1.5 text-ink-light transition text-[12.5px] font-semibold hover:text-ink';
+        filePanel.classList.toggle('hidden', !isFile);
+        urlPanel.classList.toggle('hidden',  isFile);
+    }
+
+    tabFile.addEventListener('click', () => setTab('file'));
+    tabUrl.addEventListener('click',  () => setTab('url'));
+
+    // Live preview for file upload
+    const coverInput  = $('#coverImageInput');
+    const previewWrap = $('#coverPreviewWrap');
+    const previewImg  = $('#coverPreview');
+    coverInput?.addEventListener('change', () => {
+        const file = coverInput.files[0];
+        if (file) {
+            previewImg.src = URL.createObjectURL(file);
+            previewWrap.classList.remove('hidden');
+        } else {
+            previewWrap.classList.add('hidden');
+        }
+    });
+
+    // Live preview for URL
+    const urlInput    = $('#coverUrlInput');
+    const urlPreview  = $('#coverUrlPreview');
+    urlInput?.addEventListener('input', () => {
+        const val = urlInput.value.trim();
+        if (val && urlPreview) {
+            urlPreview.src = val;
+            urlPreview.classList.remove('hidden');
+            urlPreview.onerror = () => urlPreview.classList.add('hidden');
+        } else if (urlPreview) {
+            urlPreview.classList.add('hidden');
+        }
+    });
+}
+
+/* =====================================================================
+   Event wiring
+   ===================================================================== */
+document.addEventListener('DOMContentLoaded', async () => {
+    if (window.pdfjsLib) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    await fetchCurrentUser();
+    await renderBooks();
+    initCoverTabs();
+
+    // Search
+    $('#searchInput').addEventListener('input', e => { currentFilter.q = e.target.value; renderBooks(); });
+
+    // Category filters
+    $$('#categoryFilters input').forEach(r => r.addEventListener('change', e => {
+        currentFilter.category = e.target.value; renderBooks();
+    }));
+
+    // Length filters
+    $$('#lengthFilters input').forEach(cb => cb.addEventListener('change', () => {
+        currentFilter.lengths = new Set($$('#lengthFilters input:checked').map(x => x.dataset.len));
+        renderBooks();
+    }));
+
+    // Sort
+    $('#sortSelect').addEventListener('change', e => { currentFilter.sort = e.target.value; renderBooks(); });
+
+    // Grid / List toggle
+    $$('.view-toggle').forEach(btn => {
+        btn.addEventListener('click', () => { currentView = btn.dataset.view; renderBooks(); });
+    });
+
+    /* --- Auth modal --- */
+    const authModal = $('#authModal');
+    function openAuth(tab='signin') { authModal.classList.remove('hidden'); switchAuthTab(tab); }
+    function closeAuth()            { authModal.classList.add('hidden'); }
+    $('#signInTrigger').addEventListener('click',  () => openAuth('signin'));
+    $('#closeAuthBtn').addEventListener('click',   closeAuth);
+    $('#authBackdrop').addEventListener('click',   closeAuth);
+
+    function switchAuthTab(which) {
+        const isSignIn = which === 'signin';
+        $('#signInForm').classList.toggle('hidden', !isSignIn);
+        $('#registerForm').classList.toggle('hidden', isSignIn);
+        $('#tabSignIn').classList.toggle('bg-ink', isSignIn);
+        $('#tabSignIn').classList.toggle('text-cream', isSignIn);
+        $('#tabSignIn').classList.toggle('text-ink-light', !isSignIn);
+        $('#tabRegister').classList.toggle('bg-ink', !isSignIn);
+        $('#tabRegister').classList.toggle('text-cream', !isSignIn);
+        $('#tabRegister').classList.toggle('text-ink-light', isSignIn);
+    }
+    $('#tabSignIn').addEventListener('click',   () => switchAuthTab('signin'));
+    $('#tabRegister').addEventListener('click', () => switchAuthTab('register'));
+
+    /* Sign in */
+    $('#signInForm').addEventListener('submit', async e => {
+        e.preventDefault();
+        const fd  = new FormData(e.target);
+        const err = $('#signInError');
+        try {
+            const data = await apiFetch('/auth/login/', {
+                method: 'POST',
+                body: JSON.stringify({ username: fd.get('username'), password: fd.get('password') }),
+            });
+            TOKEN = data.token; currentUser = data.user;
+            localStorage.setItem('ebooks_token', TOKEN);
+            updateAuthUI(); closeAuth();
+            showToast('Welcome back, ' + currentUser.username);
+            err.classList.add('hidden');
+            if (currentUser.is_admin) setTimeout(() => { if (confirm('Open Admin Console?')) showAdmin(true); }, 400);
+        } catch (ex) { err.textContent = ex.message || 'Invalid credentials.'; err.classList.remove('hidden'); }
+    });
+
+    /* Register */
+    $('#registerForm').addEventListener('submit', async e => {
+        e.preventDefault();
+        const fd  = new FormData(e.target);
+        const err = $('#registerError');
+        try {
+            const data = await apiFetch('/auth/register/', {
+                method: 'POST',
+                body: JSON.stringify({ username: fd.get('username'), email: fd.get('email'), password: fd.get('password') }),
+            });
+            TOKEN = data.token; currentUser = data.user;
+            localStorage.setItem('ebooks_token', TOKEN);
+            updateAuthUI(); closeAuth();
+            showToast('Account created — happy reading!');
+            err.classList.add('hidden'); e.target.reset();
+        } catch (ex) { err.textContent = ex.message || 'Registration failed.'; err.classList.remove('hidden'); }
+    });
+
+    /* User menu */
+    $('#userMenuBtn')?.addEventListener('click', e => { e.stopPropagation(); $('#userDropdown').classList.toggle('hidden'); });
+    document.addEventListener('click', () => $('#userDropdown')?.classList.add('hidden'));
+
+    async function doSignOut() {
+        try { await apiFetch('/auth/logout/', { method: 'POST' }); } catch {}
+        TOKEN = ''; currentUser = null;
+        localStorage.removeItem('ebooks_token');
+        updateAuthUI(); showToast('Signed out');
+    }
+    $('#signOutBtn')?.addEventListener('click', doSignOut);
+    $('#adminSignOutBtn')?.addEventListener('click', () => { doSignOut(); showAdmin(false); });
+
+    function showAdmin(show) {
+        $('#adminView').classList.toggle('hidden', !show);
+        $('#appView').classList.toggle('hidden', show);
+        window.scrollTo(0, 0);
+        if (show) { renderAdminTable(); initCoverTabs(); }
+    }
+    $('#goToAdminBtn')?.addEventListener('click',     () => showAdmin(true));
+    $('#backToLibraryBtn')?.addEventListener('click', () => showAdmin(false));
+
+    /* Book upload */
+    $('#bookUploadForm').addEventListener('submit', async e => {
+        e.preventDefault();
+        if (!currentUser?.is_admin) { alert('Admin only'); return; }
+        const fd      = new FormData(e.target);
+        const pdfFile = $('#pdfFileInput').files[0];
+
+        const status = $('#uploadStatus');
+        status.textContent = 'Uploading…';
+
+        const formData = new FormData();
+        formData.append('title',       fd.get('title').trim());
+        formData.append('author',      fd.get('author').trim());
+        formData.append('pages',       fd.get('pages'));
+        formData.append('category',    fd.get('category'));
+        formData.append('description', fd.get('description').trim());
+        if (pdfFile) formData.append('pdf_file', pdfFile);
+
+        // Cover: file takes priority over URL
+        const coverFile = $('#coverImageInput')?.files[0];
+        const coverUrl  = $('#coverUrlInput')?.value.trim();
+        if (coverFile) {
+            formData.append('cover_image', coverFile);
+        } else if (coverUrl) {
+            formData.append('cover_url', coverUrl);
+        } else {
+            formData.append('cover_url', `https://picsum.photos/seed/${encodeURIComponent(fd.get('title'))}/600/850`);
+        }
+
+        try {
+            await fetch(API + '/books/', {
+                method: 'POST',
+                headers: { Authorization: 'Token ' + TOKEN },
+                body: formData,
+            }).then(r => { if (!r.ok) return r.json().then(d => { throw new Error(JSON.stringify(d)); }); return r.json(); });
+            status.textContent = 'Saved ✓';
+            showToast('Book saved to Django DB');
+            e.target.reset();
+            $('#coverPreviewWrap')?.classList.add('hidden');
+            renderAdminTable(); renderBooks();
+            setTimeout(() => status.textContent = '', 2500);
+        } catch (err) { status.textContent = 'Error saving'; alert('Could not save book: ' + err.message); }
+    });
+
+    /* Admin tools */
+    $('#seedDemoBtn')?.addEventListener('click', async () => {
+        if (!confirm('Seed the demo library? (existing books will block this)')) return;
+        try { const r = await apiFetch('/books/seed/', { method: 'POST' }); showToast(`Seeded ${r.seeded} books`); renderAdminTable(); renderBooks(); }
+        catch (e) { showToast(e.message); }
+    });
+    $('#exportDbBtn')?.addEventListener('click', () => { window.open(API + '/books/?format=json'); });
+    $('#clearDbBtn')?.addEventListener('click', async () => {
+        if (!confirm('Wipe ALL books? This cannot be undone.')) return;
+        try { const r = await apiFetch('/books/wipe/', { method: 'DELETE' }); showToast(`Deleted ${r.deleted} books`); renderAdminTable(); renderBooks(); }
+        catch (e) { showToast(e.message); }
+    });
+
+    /* Reader controls */
+    $('#closeReaderBtn')?.addEventListener('click', () => { $('#readerModal').classList.add('hidden'); document.body.style.overflow = ''; });
+    $('#pdfPrev')?.addEventListener('click',   () => pdfNav(-1));
+    $('#pdfNext')?.addEventListener('click',   () => pdfNav(1));
+    $('#pdfPrev_m')?.addEventListener('click', () => pdfNav(-1));
+    $('#pdfNext_m')?.addEventListener('click', () => pdfNav(1));
+    $('#pdfZoomIn')?.addEventListener('click',  () => pdfZoom(0.2));
+    $('#pdfZoomOut')?.addEventListener('click', () => pdfZoom(-0.2));
+
+    /* Misc */
+    $('#mobileMenuBtn')?.addEventListener('click', () => $('#mobileNav').classList.toggle('hidden'));
+    $('#exploreBtn')?.addEventListener('click', () => document.getElementById('bookGrid').scrollIntoView({ behavior: 'smooth' }));
+
+    document.addEventListener('keydown', e => {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); $('#searchInput').focus(); }
+        if ($('#readerModal').classList.contains('hidden')) return;
+        if (e.key === 'ArrowRight') pdfNav(1);
+        if (e.key === 'ArrowLeft')  pdfNav(-1);
+        if (e.key === 'Escape') { $('#readerModal').classList.add('hidden'); document.body.style.overflow = ''; }
+    });
+
+    /* First-visit nudge */
+    const seen = localStorage.getItem('ebooks_seen_auth');
+    if (!currentUser && !seen) {
+        setTimeout(() => { openAuth('register'); localStorage.setItem('ebooks_seen_auth', '1'); }, 900);
+    }
+});
+</script>
+</body>
+</html>
